@@ -1,6 +1,5 @@
 package com.andreising.imagesscroller.domain.usecases
 
-import androidx.room.Index
 import com.andreising.imagesscroller.data.retrofit.repository.PictureRemoteRepository
 import com.andreising.imagesscroller.data.room.repository.PictureLocalRepository
 import com.andreising.imagesscroller.domain.model.PictureModel

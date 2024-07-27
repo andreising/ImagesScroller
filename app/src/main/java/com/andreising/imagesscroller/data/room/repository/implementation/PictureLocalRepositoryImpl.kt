@@ -28,7 +28,7 @@ class PictureLocalRepositoryImpl(private val context: Context, private val dao: 
 
     override suspend fun isItemInDatabase(id: Int): Boolean {
         return try {
-            val result: PictureEntity? = dao.getItem(id)
+            val result = dao.getItem(id)
             result != null
         } catch (e: Exception) {
             Log.e("PictureLocalRepositoryImpl", "Error checking item in database", e)
