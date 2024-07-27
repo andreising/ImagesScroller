@@ -2,21 +2,25 @@ package com.andreising.imagesscroller.presentation.screens.remote
 
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,8 +70,13 @@ fun RemoteScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(state.data ?: emptyList()) { picture ->
-                        PictureItem(picture, context)
+                    itemsIndexed(state.data ?: emptyList()) { index, picture ->
+                        PictureItem(picture, context) {
+                            viewModel.onFavouritesButtonPressed(
+                                picture,
+                                index
+                            )
+                        }
                     }
                     item {
                         if (isLoadingMore.value) {
@@ -86,8 +96,9 @@ fun RemoteScreen() {
 }
 
 @Composable
-fun PictureItem(picture: PictureModel, context: Context) {
-    val isLoading = remember { mutableStateOf(true) }
+fun PictureItem(picture: PictureModel, context: Context, onFavouriteClicked: (Boolean) -> Unit) {
+    var isLoading by remember { mutableStateOf(true) }
+
     Card(
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -96,22 +107,37 @@ fun PictureItem(picture: PictureModel, context: Context) {
             .padding(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Gray)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(picture.url)
-                .listener(
-                    onStart = { isLoading.value = true },
-                    onSuccess = { _, _ -> isLoading.value = false },
-                    onError = { _, _ -> isLoading.value = false }
-                )
-                .build(), contentDescription = "picture_item",
-            modifier = Modifier.fillMaxWidth(),
-            contentScale = ContentScale.FillWidth
-        )
-        if (isLoading.value) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(picture.path)
+                    .listener(
+                        onStart = { isLoading = true },
+                        onSuccess = { _, _ -> isLoading = false },
+                        onError = { _, _ -> isLoading = false }
+                    )
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
             )
+
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center).padding(16.dp)
+                )
+            } else IconButton(
+                onClick = { onFavouriteClicked.invoke(picture.isFavourite) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "liked",
+                    tint = if (picture.isFavourite) Color.Red else Color.Gray
+                )
+            }
+
         }
     }
 }
