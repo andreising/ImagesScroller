@@ -1,6 +1,5 @@
 package com.andreising.imagesscroller.data.retrofit.repository.implementation
 
-import android.net.http.HttpException
 import com.andreising.imagesscroller.data.retrofit.common.Constants
 import com.andreising.imagesscroller.data.retrofit.remote.PictureAPI
 import com.andreising.imagesscroller.data.retrofit.remote.dto.DTOImageInfo
@@ -13,28 +12,34 @@ import kotlinx.coroutines.withContext
 class PictureRemoteRepositoryImpl(private val pictureAPI: PictureAPI) : PictureRemoteRepository {
 
     private val pictureList = mutableListOf<DTOImageInfo>()
-
     private val randomIdList = mutableListOf<Int>()
-
     private var nextId = 0
 
     override suspend fun getNewPictureList(): List<DTOImageInfo> = withContext(Dispatchers.IO) {
         createNewIdList()
-        updatePictureList()
+        updateAndFetchPictureList()
     }
 
     override suspend fun updatePictureList(): List<DTOImageInfo> = withContext(Dispatchers.IO) {
-        val lastId =
-            if (nextId + Constants.PICTURE_IN_STEP > Constants.MAX_PICTURE) Constants.MAX_PICTURE
-            else nextId + Constants.PICTURE_IN_STEP
-        val result = (nextId until lastId).map { id ->
-            async { getPictureById(randomIdList[id]) }
-        }.awaitAll().filterNotNull()
-
-        pictureList.addAll(result)
-        nextId = lastId
-        pictureList
+        updateAndFetchPictureList()
     }
+
+    private suspend fun updateAndFetchPictureList(): List<DTOImageInfo> =
+        withContext(Dispatchers.Default) {
+            val lastId = if (nextId + Constants.PICTURE_IN_STEP > Constants.MAX_PICTURE) {
+                Constants.MAX_PICTURE
+            } else {
+                nextId + Constants.PICTURE_IN_STEP
+            }
+
+            val result = (nextId until lastId).map { id ->
+                async { getPictureById(randomIdList[id]) }
+            }.awaitAll().filterNotNull()
+
+            pictureList.addAll(result)
+            nextId = lastId
+            pictureList
+        }
 
     private fun createNewIdList() {
         randomIdList.apply {
@@ -48,8 +53,7 @@ class PictureRemoteRepositoryImpl(private val pictureAPI: PictureAPI) : PictureR
         return try {
             pictureAPI.getImageInfo(id)
         } catch (e: Exception) {
-            return null
+            null
         }
     }
-
 }
